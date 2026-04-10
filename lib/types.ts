@@ -88,6 +88,9 @@ export interface ExtractedData {
   product_category: string
   net_weight: string
   licensed_supplier: string
+  descriptors_en: string
+  descriptors_fr: string
+  dried_equivalent: string
 }
 
 export interface User {

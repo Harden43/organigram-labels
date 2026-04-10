@@ -16,6 +16,7 @@ const EMPTY: ExtractedData = {
   units_per_pack: '', total_units: '', total_master_cases: '', province: '',
   product_gtin: '', case_gtin: '', thc: '', total_thc: '', cbd: '',
   total_cbd: '', product_category: '', net_weight: '', licensed_supplier: 'Organigram Inc.',
+  descriptors_en: '', descriptors_fr: '', dried_equivalent: '',
 }
 
 const FIELD_SECTIONS = [
@@ -40,7 +41,10 @@ const FIELD_SECTIONS = [
       { key: 'province_sku', label: 'Province SKU' },
       { key: 'product_category', label: 'Product Category' },
       { key: 'unit_size', label: 'Unit Size (g)' },
-      { key: 'net_weight', label: 'Net Weight' },
+      { key: 'net_weight', label: 'Net Weight (g)' },
+      { key: 'dried_equivalent', label: 'Dried Equivalent (g)' },
+      { key: 'descriptors_en', label: 'Descriptors EN' },
+      { key: 'descriptors_fr', label: 'Descriptors FR' },
       { key: 'province', label: 'Province / Destination' },
     ],
   },

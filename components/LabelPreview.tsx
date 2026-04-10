@@ -16,6 +16,21 @@ export default function LabelPreview({ data, type, forPrint = false }: LabelPrev
 }
 
 function BSLabel({ data }: { data: ExtractedData }) {
+  const PINK = '#e6007e'
+  const BLACK = '#1a1a1a'
+
+  // Format date as YYMMDD for GS1 (13) barcode segment
+  const dateForBarcode = (() => {
+    if (!data.packaged_on_date) return 'YYMMDD'
+    const m = data.packaged_on_date.match(/(\d{4})-?(\d{2})-?(\d{2})/)
+    return m ? `${m[1].slice(2)}${m[2]}${m[3]}` : 'YYMMDD'
+  })()
+
+  const totalThc = data.total_thc || data.thc || '000.0'
+  const totalCbd = data.total_cbd || data.cbd || '000.0'
+  const dried = data.dried_equivalent || data.net_weight || 'X'
+  const netWeight = data.net_weight || data.unit_size || 'X.X'
+
   return (
     <div className="mb-5">
       <p className="text-[10px] font-mono text-gray-400 uppercase tracking-wider mb-2">
@@ -25,69 +40,78 @@ function BSLabel({ data }: { data: ExtractedData }) {
         id="bs-label"
         style={{
           background: '#fff',
-          border: '1.5px solid #1a1a18',
+          border: '1px solid #d4d4cf',
           borderRadius: '4px',
           fontFamily: 'Arial, Helvetica, sans-serif',
-          color: '#000',
-          padding: '10px 12px',
-          maxWidth: '380px',
+          color: BLACK,
+          padding: '20px 22px',
+          maxWidth: '520px',
           fontSize: '11px',
+          display: 'grid',
+          gridTemplateColumns: '1fr auto',
+          gap: '20px',
+          alignItems: 'start',
         }}
       >
-        {/* Top row */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '7px', marginBottom: '7px', borderBottom: '1px solid #ccc' }}>
-          <div>
-            <div style={{ fontSize: '14px', fontWeight: 700, lineHeight: 1.2 }}>{data.product_name || '—'}</div>
-            <div style={{ fontSize: '10px', color: '#555', marginTop: '2px' }}>
-              {data.brand_name || '—'} · {data.product_category || '—'}
-            </div>
+        {/* LEFT: Variable imprint text */}
+        <div>
+          {/* Product name */}
+          <div style={{ fontSize: '13px', fontWeight: 800, lineHeight: 1.2, letterSpacing: '0.3px', marginBottom: '4px' }}>
+            {(data.product_name || 'PRODUCT NAME').toUpperCase()}
           </div>
-          <div style={{ textAlign: 'right', fontSize: '10px', color: '#444', lineHeight: 1.7 }}>
-            SKU: <strong>{data.sku || '—'}</strong><br />
-            Unit: <strong>{data.unit_size || '—'} g</strong>
+
+          {/* Descriptors (bilingual) */}
+          <div style={{ fontSize: '10px', color: BLACK, marginBottom: '10px', lineHeight: 1.3 }}>
+            {data.descriptors_en || '—'}{'  //  '}<em>{data.descriptors_fr || '—'}</em>
+          </div>
+
+          {/* Potency — pink variable */}
+          <div style={{ fontSize: '11px', fontWeight: 700, color: PINK, lineHeight: 1.4 }}>
+            <div>Total THC Total: {totalThc} mg/g</div>
+            <div>Total CBD Total: {totalCbd} mg/g</div>
+          </div>
+
+          {/* Dried equivalent */}
+          <div style={{ fontSize: '10px', color: BLACK, marginTop: '10px', lineHeight: 1.3 }}>
+            <div>Contains the equivalent of {dried} g of dried cannabis</div>
+            <div><em>Contient l&apos;équivalent de {dried} g de cannabis séché</em></div>
+          </div>
+
+          {/* Net weight */}
+          <div style={{ fontSize: '10px', color: BLACK, marginTop: '6px' }}>
+            Net weight / <em>Poids net</em> : {netWeight} g
+          </div>
+
+          {/* Packaged on — pink variable */}
+          <div style={{ fontSize: '10px', color: PINK, fontWeight: 600, marginTop: '6px' }}>
+            Packaged on / <em>Emballé le</em> : {data.packaged_on_date || 'YYYY-MM-DD'}
+          </div>
+
+          {/* Lot — pink variable */}
+          <div style={{ fontSize: '10px', color: PINK, fontWeight: 600 }}>
+            Lot: {data.lot_number || 'XXXXXXXXXXX'}
           </div>
         </div>
 
-        {/* Potency */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px 10px', paddingBottom: '7px', marginBottom: '7px', borderBottom: '1px solid #ccc', fontSize: '10px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#666' }}>THC</span>
-            <strong style={{ fontSize: '11px' }}>{data.thc || '—'} mg/g</strong>
+        {/* RIGHT: 2D barcode placeholder + GS1 segments */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
+          {/* Pink checker QR placeholder */}
+          <div
+            style={{
+              width: '78px',
+              height: '78px',
+              backgroundImage: `linear-gradient(45deg, ${PINK} 25%, transparent 25%, transparent 75%, ${PINK} 75%), linear-gradient(45deg, ${PINK} 25%, transparent 25%, transparent 75%, ${PINK} 75%)`,
+              backgroundSize: '8px 8px',
+              backgroundPosition: '0 0, 4px 4px',
+              border: `1px solid ${PINK}`,
+            }}
+          />
+          {/* GS1 barcode segments — pink */}
+          <div style={{ fontSize: '10px', color: PINK, fontWeight: 600, lineHeight: 1.4 }}>
+            <div>(01){data.product_gtin || '12345678910'}</div>
+            <div>(13){dateForBarcode}</div>
+            <div>(10){data.lot_number || '12345678910'}</div>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#666' }}>Total THC</span>
-            <strong style={{ fontSize: '11px' }}>{data.total_thc || '—'} mg/g</strong>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#666' }}>CBD</span>
-            <strong style={{ fontSize: '11px' }}>{data.cbd || '—'} mg/g</strong>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#666' }}>Total CBD</span>
-            <strong style={{ fontSize: '11px' }}>{data.total_cbd || '—'} mg/g</strong>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '4px', fontSize: '10px' }}>
-          <div>
-            <div style={{ color: '#666', fontSize: '9px' }}>Lot #</div>
-            <div style={{ fontWeight: 700, fontSize: '11px' }}>{data.lot_number || '—'}</div>
-          </div>
-          <div>
-            <div style={{ color: '#666', fontSize: '9px' }}>Packaged on</div>
-            <div style={{ fontWeight: 700, fontSize: '11px' }}>{data.packaged_on_date || '—'}</div>
-          </div>
-          <div>
-            <div style={{ color: '#666', fontSize: '9px' }}>Province</div>
-            <div style={{ fontWeight: 700, fontSize: '11px' }}>{data.province || '—'}</div>
-          </div>
-        </div>
-
-        {/* GTIN bar */}
-        <div style={{ marginTop: '7px', paddingTop: '6px', borderTop: '1px solid #ccc', fontSize: '9px', color: '#555', display: 'flex', justifyContent: 'space-between' }}>
-          <span>GTIN: {data.product_gtin || '—'}</span>
-          <span>{data.licensed_supplier || 'Organigram Inc.'}</span>
         </div>
       </div>
     </div>

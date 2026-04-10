@@ -20,10 +20,14 @@ You are given two images:
 Extract every label-relevant field from both images carefully.
 Pay special attention to:
 - Lot number (exactly as written)
-- Potency values: THC, Total THC, CBD, Total CBD (include units mg/g)
-- Packaged on date
+- Potency values: THC, Total THC, CBD, Total CBD (number only, no units)
+- Packaged on date (YYYY-MM-DD format if possible)
 - SKU and Province SKU
 - GTIN numbers
+- Strain descriptors (e.g. "Tropical, Sour, Gas") in both English and French if available
+- Dried cannabis equivalent if listed (e.g. "4 g of dried cannabis")
+
+For numeric potency values, return only the number (e.g. "925" not "925 mg/g").
 
 Return ONLY a valid JSON object. No markdown, no backticks, no explanation. Just raw JSON.
 
@@ -49,6 +53,9 @@ Return ONLY a valid JSON object. No markdown, no backticks, no explanation. Just
   "total_cbd": "",
   "product_category": "",
   "net_weight": "",
+  "descriptors_en": "",
+  "descriptors_fr": "",
+  "dried_equivalent": "",
   "licensed_supplier": "Organigram Inc."
 }`
 
