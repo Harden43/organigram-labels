@@ -1,5 +1,6 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import AppLayout from '@/components/AppLayout'
 import LabelPreview from '@/components/LabelPreview'
 import { ExtractedData } from '@/lib/types'
@@ -79,6 +80,8 @@ export default function GeneratePage() {
   const [saved, setSaved] = useState(false)
   const woRef = useRef<HTMLInputElement>(null)
   const specRef = useRef<HTMLInputElement>(null)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   function readFile(file: File): Promise<{ b64: string; mime: string; name: string }> {
     return new Promise((res, rej) => {
@@ -162,7 +165,21 @@ export default function GeneratePage() {
   }
 
   function printLabel() {
+    // Build a clean filename: lot - sku - product - POD
+    const sanitize = (s: string) => (s || '').replace(/[\\/:*?"<>|]/g, '').trim()
+    const parts = [
+      sanitize(fields.lot_number) || 'NO_LOT',
+      sanitize(fields.province_sku || fields.sku) || 'NO_SKU',
+      sanitize(fields.product_name) || 'NO_NAME',
+      sanitize(fields.packaged_on_date) || 'NO_DATE',
+    ]
+    const filename = parts.join(' - ')
+
+    const originalTitle = document.title
+    document.title = filename
     window.print()
+    // Restore title shortly after the dialog opens
+    setTimeout(() => { document.title = originalTitle }, 1000)
   }
 
   function reset() {
@@ -178,13 +195,13 @@ export default function GeneratePage() {
 
   return (
     <AppLayout>
-      {/* Print-only area */}
-      <div className="hidden print:block p-8">
-        <LabelPreview data={fields} type={labelType} forPrint />
-        <p style={{ fontSize: '10px', color: '#888', marginTop: '16px', fontFamily: 'monospace' }}>
-          WO: {fields.wop_number} · Lot: {fields.lot_number} · Printed by: {getSession().user} · {new Date().toLocaleString()}
-        </p>
-      </div>
+      {/* Print-only area — rendered as a portal directly into <body> so it can be visually isolated during print */}
+      {mounted && createPortal(
+        <div id="print-label-portal" style={{ display: 'none' }}>
+          <LabelPreview data={fields} type={labelType} forPrint />
+        </div>,
+        document.body
+      )}
 
       <div className="no-print p-8">
         {/* Header */}

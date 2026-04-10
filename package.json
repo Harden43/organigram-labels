@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@bwip-js/browser": "^4.9.0",
     "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.44.2",
     "bwip-js": "^4.9.0",

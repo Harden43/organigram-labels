@@ -19,22 +19,26 @@ body {
 
 /* Label print styles */
 @media print {
-  .no-print { display: none !important; }
-  body { background: white; }
-  .print-page { padding: 12mm; }
-
-  /* Hide layout chrome (sidebar nav) and reset main margin */
-  aside { display: none !important; }
-  main { margin-left: 0 !important; }
-
-  /* Remove default page margins so only the label prints */
-  @page {
-    margin: 0;
-    size: auto;
+  /* Hide every direct child of body except the print portal */
+  body > *:not(#print-label-portal) {
+    display: none !important;
   }
+
+  #print-label-portal {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  body { background: white !important; }
   html, body {
     margin: 0 !important;
     padding: 0 !important;
+  }
+
+  @page {
+    margin: 4mm;
+    size: auto;
   }
 }
 

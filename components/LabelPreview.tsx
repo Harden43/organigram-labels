@@ -1,6 +1,5 @@
 'use client'
-import { useEffect, useRef } from 'react'
-import bwipjs from 'bwip-js'
+import { toSVG } from '@bwip-js/browser'
 import { ExtractedData } from '@/lib/types'
 
 interface LabelPreviewProps {
@@ -19,31 +18,35 @@ export default function LabelPreview({ data, type, forPrint = false }: LabelPrev
 }
 
 function DataMatrix({ gtin, dateYYMMDD, lot, size = 90 }: { gtin: string; dateYYMMDD: string; lot: string; size?: number }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+  if (!gtin || !lot || !dateYYMMDD || dateYYMMDD === 'YYMMDD') {
+    return <div style={{ width: size, height: size }} />
+  }
 
-  useEffect(() => {
-    if (!canvasRef.current) return
-    if (!gtin || !lot || !dateYYMMDD || dateYYMMDD === 'YYMMDD') return
+  const gtin14 = gtin.replace(/\D/g, '').padStart(14, '0').slice(-14)
+  const text = `(01)${gtin14}(13)${dateYYMMDD}(10)${lot}`
 
-    const gtin14 = gtin.replace(/\D/g, '').padStart(14, '0').slice(-14)
-    const text = `(01)${gtin14}(13)${dateYYMMDD}(10)${lot}`
-
-    try {
-      ;(bwipjs as any).toCanvas(canvasRef.current, {
-        bcid: 'gs1datamatrix',
-        text,
-        scale: 4,
-        padding: 4,
-      })
-    } catch (e) {
-      console.error('DataMatrix render failed:', e, 'text:', text)
-    }
-  }, [gtin, dateYYMMDD, lot])
+  let svg = ''
+  try {
+    svg = toSVG({
+      bcid: 'gs1datamatrix',
+      text,
+      scale: 4,
+      paddingwidth: 2,
+      paddingheight: 2,
+    })
+  } catch (e) {
+    console.error('DataMatrix render failed:', e, 'text:', text)
+    return (
+      <div style={{ width: size, height: size, fontSize: 9, color: '#c00', border: '1px dashed #c00', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 4 }}>
+        barcode error
+      </div>
+    )
+  }
 
   return (
-    <canvas
-      ref={canvasRef}
-      style={{ width: `${size}px`, height: `${size}px`, display: 'block' }}
+    <div
+      style={{ width: size, height: size, display: 'block', lineHeight: 0 }}
+      dangerouslySetInnerHTML={{ __html: svg }}
     />
   )
 }
