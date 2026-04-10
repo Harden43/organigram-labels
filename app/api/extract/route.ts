@@ -64,19 +64,36 @@ Return ONLY a valid JSON object. No markdown, no backticks, no explanation. Just
   "licensed_supplier": "Organigram Inc."
 }`
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
-
-    const result = await model.generateContent([
-      {
-        inlineData: { mimeType: woMime, data: woImage },
-      },
-      {
-        inlineData: { mimeType: specMime, data: specImage },
-      },
+    // Fallback chain — if a model is overloaded (503) or not found (404), try the next one
+    const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-flash-latest', 'gemini-2.0-flash']
+    const parts = [
+      { inlineData: { mimeType: woMime, data: woImage } },
+      { inlineData: { mimeType: specMime, data: specImage } },
       { text: prompt },
-    ])
+    ]
 
-    const text = result.response.text()
+    let text = ''
+    let lastErr: any = null
+    for (const modelName of MODELS) {
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName })
+        const result = await model.generateContent(parts)
+        text = result.response.text()
+        break
+      } catch (e: any) {
+        lastErr = e
+        const msg = String(e?.message || e)
+        // Only fall through on overload / not-found / quota errors
+        if (!/503|overload|unavailable|404|not found|429|quota/i.test(msg)) {
+          throw e
+        }
+        console.warn(`Model ${modelName} failed (${msg.slice(0, 120)}), trying next...`)
+      }
+    }
+
+    if (!text) {
+      throw lastErr || new Error('All Gemini models are unavailable. Try again in a moment.')
+    }
     const clean = text.replace(/```json|```/g, '').trim()
 
     let extracted
