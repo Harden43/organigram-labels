@@ -34,11 +34,11 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-[#f4f3ef] px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="inline-flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center">
-              <span className="text-white text-xs font-bold font-mono">OG</span>
+          <div className="inline-flex items-center gap-2.5 mb-4">
+            <div className="w-12 h-9 bg-brand-500 rounded-full flex items-center justify-center">
+              <span className="text-white text-sm font-extrabold tracking-tight">OG</span>
             </div>
-            <span className="font-mono text-sm tracking-widest text-gray-500 uppercase">Organigram</span>
+            <span className="font-mono text-sm tracking-widest text-brand-500 uppercase font-medium">Organigram</span>
           </div>
           <h1 className="text-2xl font-semibold text-gray-900">Label Generator</h1>
           <p className="text-sm text-gray-500 mt-1">Labelling Operations Tool</p>

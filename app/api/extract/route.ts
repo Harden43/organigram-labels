@@ -52,7 +52,7 @@ Return ONLY a valid JSON object. No markdown, no backticks, no explanation. Just
   "licensed_supplier": "Organigram Inc."
 }`
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
 
     const result = await model.generateContent([
       {

@@ -31,12 +31,12 @@ export default function Nav() {
   }
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-56 bg-[#1a1a18] flex flex-col z-50">
+    <aside className="fixed left-0 top-0 h-full w-56 bg-brand-500 flex flex-col z-50">
       {/* Logo */}
       <div className="px-5 py-5 border-b border-white/10">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 bg-brand-500 rounded-md flex items-center justify-center flex-shrink-0">
-            <span className="text-white text-[10px] font-bold font-mono">OG</span>
+          <div className="w-9 h-7 bg-white rounded-full flex items-center justify-center flex-shrink-0">
+            <span className="text-brand-500 text-[12px] font-extrabold tracking-tight">OG</span>
           </div>
           <div>
             <div className="text-white text-xs font-semibold font-mono tracking-wider">ORGANIGRAM</div>
@@ -56,8 +56,8 @@ export default function Nav() {
               className={clsx(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
                 active
-                  ? 'bg-brand-500 text-white'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  ? 'bg-white text-brand-500 font-medium'
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
               )}
             >
               <Icon size={15} />
@@ -69,10 +69,10 @@ export default function Nav() {
 
       {/* User + logout */}
       <div className="px-4 py-4 border-t border-white/10">
-        <div className="text-[11px] text-gray-500 font-mono mb-2 truncate">{user}</div>
+        <div className="text-[11px] text-white/60 font-mono mb-2 truncate">{user}</div>
         <button
           onClick={logout}
-          className="flex items-center gap-2 text-gray-500 hover:text-white text-xs transition-colors w-full"
+          className="flex items-center gap-2 text-white/60 hover:text-white text-xs transition-colors w-full"
         >
           <LogOut size={13} />
           Sign out
