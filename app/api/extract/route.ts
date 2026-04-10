@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
 
 export async function POST(req: NextRequest) {
   try {
@@ -52,28 +52,19 @@ Return ONLY a valid JSON object. No markdown, no backticks, no explanation. Just
   "licensed_supplier": "Organigram Inc."
 }`
 
-    const response = await client.messages.create({
-      model: 'claude-opus-4-5',
-      max_tokens: 1024,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: { type: 'base64', media_type: woMime, data: woImage },
-            },
-            {
-              type: 'image',
-              source: { type: 'base64', media_type: specMime, data: specImage },
-            },
-            { type: 'text', text: prompt },
-          ],
-        },
-      ],
-    })
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
-    const text = response.content[0].type === 'text' ? response.content[0].text : ''
+    const result = await model.generateContent([
+      {
+        inlineData: { mimeType: woMime, data: woImage },
+      },
+      {
+        inlineData: { mimeType: specMime, data: specImage },
+      },
+      { text: prompt },
+    ])
+
+    const text = result.response.text()
     const clean = text.replace(/```json|```/g, '').trim()
 
     let extracted
