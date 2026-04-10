@@ -22,6 +22,20 @@ body {
   .no-print { display: none !important; }
   body { background: white; }
   .print-page { padding: 12mm; }
+
+  /* Hide layout chrome (sidebar nav) and reset main margin */
+  aside { display: none !important; }
+  main { margin-left: 0 !important; }
+
+  /* Remove default page margins so only the label prints */
+  @page {
+    margin: 0;
+    size: auto;
+  }
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
 }
 
 /* Scrollbar */

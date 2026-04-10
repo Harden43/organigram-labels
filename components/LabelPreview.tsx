@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef } from 'react'
+import bwipjs from 'bwip-js'
 import { ExtractedData } from '@/lib/types'
 
 interface LabelPreviewProps {
@@ -25,20 +26,18 @@ function DataMatrix({ gtin, dateYYMMDD, lot, size = 90 }: { gtin: string; dateYY
     if (!gtin || !lot || !dateYYMMDD || dateYYMMDD === 'YYMMDD') return
 
     const gtin14 = gtin.replace(/\D/g, '').padStart(14, '0').slice(-14)
+    const text = `(01)${gtin14}(13)${dateYYMMDD}(10)${lot}`
 
-    import('bwip-js').then(mod => {
-      const bwipjs: any = (mod as any).default || mod
-      try {
-        bwipjs.toCanvas(canvasRef.current!, {
-          bcid: 'gs1datamatrix',
-          text: `(01)${gtin14}(13)${dateYYMMDD}(10)${lot}`,
-          scale: 4,
-          padding: 4,
-        })
-      } catch (e) {
-        console.error('DataMatrix render failed:', e)
-      }
-    })
+    try {
+      ;(bwipjs as any).toCanvas(canvasRef.current, {
+        bcid: 'gs1datamatrix',
+        text,
+        scale: 4,
+        padding: 4,
+      })
+    } catch (e) {
+      console.error('DataMatrix render failed:', e, 'text:', text)
+    }
   }, [gtin, dateYYMMDD, lot])
 
   return (
