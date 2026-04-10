@@ -14,16 +14,21 @@ export async function POST(req: NextRequest) {
 
     const prompt = `You are a cannabis labelling assistant at Organigram Inc. in Canada.
 You are given two images:
-1. A Work Order (WO) from Veeva Vault
-2. A Product Specification Sheet
+1. A Work Order (WO) from Veeva Vault — contains the WO number (starts with "WO" e.g. WO00024495)
+2. A Product Specification Sheet — contains the actual Lot Number
+
+CRITICAL DISTINCTIONS — DO NOT CONFUSE THESE FIELDS:
+- wop_number: The Work Order number, ALWAYS starts with "WO" (e.g., "WO00024495"). Found on the Work Order image. Goes in wop_number ONLY.
+- lot_number: A purely numeric batch/lot identifier (e.g., "46623260124"). Found on the SPEC SHEET in a row labeled "Lot Number" or "Lot #". NEVER starts with "WO". NEVER use the WO number as the lot number.
+
+If you cannot find a separate numeric Lot Number on the spec sheet, return an empty string for lot_number — do NOT fall back to the WO number.
 
 Extract every label-relevant field from both images carefully.
 Pay special attention to:
-- Lot number (exactly as written)
 - Potency values: THC, Total THC, CBD, Total CBD (number only, no units)
 - Packaged on date (YYYY-MM-DD format if possible)
 - SKU and Province SKU
-- GTIN numbers
+- GTIN numbers (digits only)
 - Strain descriptors (e.g. "Tropical, Sour, Gas") in both English and French if available
 - Dried cannabis equivalent if listed (e.g. "4 g of dried cannabis")
 

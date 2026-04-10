@@ -1,3 +1,5 @@
+'use client'
+import { useEffect, useRef } from 'react'
 import { ExtractedData } from '@/lib/types'
 
 interface LabelPreviewProps {
@@ -15,9 +17,41 @@ export default function LabelPreview({ data, type, forPrint = false }: LabelPrev
   )
 }
 
+function DataMatrix({ gtin, dateYYMMDD, lot, size = 90 }: { gtin: string; dateYYMMDD: string; lot: string; size?: number }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    if (!canvasRef.current) return
+    if (!gtin || !lot || !dateYYMMDD || dateYYMMDD === 'YYMMDD') return
+
+    const gtin14 = gtin.replace(/\D/g, '').padStart(14, '0').slice(-14)
+
+    import('bwip-js').then(mod => {
+      const bwipjs: any = (mod as any).default || mod
+      try {
+        bwipjs.toCanvas(canvasRef.current!, {
+          bcid: 'gs1datamatrix',
+          text: `(01)${gtin14}(13)${dateYYMMDD}(10)${lot}`,
+          scale: 4,
+          padding: 4,
+        })
+      } catch (e) {
+        console.error('DataMatrix render failed:', e)
+      }
+    })
+  }, [gtin, dateYYMMDD, lot])
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{ width: `${size}px`, height: `${size}px`, display: 'block' }}
+    />
+  )
+}
+
 function BSLabel({ data }: { data: ExtractedData }) {
-  const PINK = '#e6007e'
-  const BLACK = '#1a1a1a'
+  const BLACK = '#000'
+  const FONT = '"Helvetica Neue", Helvetica, Arial, sans-serif'
 
   // Format date as YYMMDD for GS1 (13) barcode segment
   const dateForBarcode = (() => {
@@ -37,12 +71,11 @@ function BSLabel({ data }: { data: ExtractedData }) {
         Brightstock label · {data.wop_number}
       </p>
       <div
-        id="bs-label"
         style={{
           background: '#fff',
           border: '1px solid #d4d4cf',
           borderRadius: '4px',
-          fontFamily: 'Arial, Helvetica, sans-serif',
+          fontFamily: FONT,
           color: BLACK,
           padding: '20px 22px',
           maxWidth: '520px',
@@ -56,61 +89,54 @@ function BSLabel({ data }: { data: ExtractedData }) {
         {/* LEFT: Variable imprint text */}
         <div>
           {/* Product name */}
-          <div style={{ fontSize: '13px', fontWeight: 800, lineHeight: 1.2, letterSpacing: '0.3px', marginBottom: '4px' }}>
+          <div style={{ fontSize: '13px', fontWeight: 700, lineHeight: 1.2, letterSpacing: '0.2px', marginBottom: '4px' }}>
             {(data.product_name || 'PRODUCT NAME').toUpperCase()}
           </div>
 
           {/* Descriptors (bilingual) */}
-          <div style={{ fontSize: '10px', color: BLACK, marginBottom: '10px', lineHeight: 1.3 }}>
+          <div style={{ fontSize: '10px', marginBottom: '10px', lineHeight: 1.3 }}>
             {data.descriptors_en || '—'}{'  //  '}<em>{data.descriptors_fr || '—'}</em>
           </div>
 
-          {/* Potency — pink variable */}
-          <div style={{ fontSize: '11px', fontWeight: 700, color: PINK, lineHeight: 1.4 }}>
+          {/* Potency */}
+          <div style={{ fontSize: '11px', fontWeight: 700, lineHeight: 1.5 }}>
             <div>Total THC Total: {totalThc} mg/g</div>
             <div>Total CBD Total: {totalCbd} mg/g</div>
           </div>
 
           {/* Dried equivalent */}
-          <div style={{ fontSize: '10px', color: BLACK, marginTop: '10px', lineHeight: 1.3 }}>
+          <div style={{ fontSize: '10px', marginTop: '10px', lineHeight: 1.3 }}>
             <div>Contains the equivalent of {dried} g of dried cannabis</div>
             <div><em>Contient l&apos;équivalent de {dried} g de cannabis séché</em></div>
           </div>
 
           {/* Net weight */}
-          <div style={{ fontSize: '10px', color: BLACK, marginTop: '6px' }}>
+          <div style={{ fontSize: '10px', marginTop: '6px' }}>
             Net weight / <em>Poids net</em> : {netWeight} g
           </div>
 
-          {/* Packaged on — pink variable */}
-          <div style={{ fontSize: '10px', color: PINK, fontWeight: 600, marginTop: '6px' }}>
+          {/* Packaged on */}
+          <div style={{ fontSize: '10px', marginTop: '6px' }}>
             Packaged on / <em>Emballé le</em> : {data.packaged_on_date || 'YYYY-MM-DD'}
           </div>
 
-          {/* Lot — pink variable */}
-          <div style={{ fontSize: '10px', color: PINK, fontWeight: 600 }}>
+          {/* Lot */}
+          <div style={{ fontSize: '10px' }}>
             Lot: {data.lot_number || 'XXXXXXXXXXX'}
           </div>
         </div>
 
-        {/* RIGHT: 2D barcode placeholder + GS1 segments */}
+        {/* RIGHT: Real DataMatrix + GS1 segments */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
-          {/* Pink checker QR placeholder */}
-          <div
-            style={{
-              width: '78px',
-              height: '78px',
-              backgroundImage: `linear-gradient(45deg, ${PINK} 25%, transparent 25%, transparent 75%, ${PINK} 75%), linear-gradient(45deg, ${PINK} 25%, transparent 25%, transparent 75%, ${PINK} 75%)`,
-              backgroundSize: '8px 8px',
-              backgroundPosition: '0 0, 4px 4px',
-              border: `1px solid ${PINK}`,
-            }}
+          <DataMatrix
+            gtin={data.product_gtin}
+            dateYYMMDD={dateForBarcode}
+            lot={data.lot_number}
           />
-          {/* GS1 barcode segments — pink */}
-          <div style={{ fontSize: '10px', color: PINK, fontWeight: 600, lineHeight: 1.4 }}>
-            <div>(01){data.product_gtin || '12345678910'}</div>
+          <div style={{ fontSize: '10px', fontWeight: 600, lineHeight: 1.4 }}>
+            <div>(01){data.product_gtin || '—'}</div>
             <div>(13){dateForBarcode}</div>
-            <div>(10){data.lot_number || '12345678910'}</div>
+            <div>(10){data.lot_number || '—'}</div>
           </div>
         </div>
       </div>
