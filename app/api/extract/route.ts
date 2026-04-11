@@ -78,38 +78,39 @@ RULES for the HTML:
 - If the spec sheet shows a DataMatrix/QR square, put {{DATAMATRIX}} at
   that exact position (use a containing div sized similar to the original).
 
-Return ONLY a valid JSON object — no markdown, no backticks, no explanation:
+Return your response in EXACTLY this format with the two delimiters below.
+No markdown, no backticks, no explanation, no code fences.
 
+===JSON===
 {
-  "data": {
-    "wop_number": "",
-    "product_name": "",
-    "brand_name": "",
-    "sku": "",
-    "province_sku": "",
-    "lot_number": "",
-    "formulation_lot": "",
-    "packaged_on_date": "",
-    "unit_size": "",
-    "units_per_pack": "",
-    "total_units": "",
-    "total_master_cases": "",
-    "province": "",
-    "product_gtin": "",
-    "case_gtin": "",
-    "thc": "",
-    "total_thc": "",
-    "cbd": "",
-    "total_cbd": "",
-    "product_category": "",
-    "net_weight": "",
-    "descriptors_en": "",
-    "descriptors_fr": "",
-    "dried_equivalent": "",
-    "licensed_supplier": "Organigram Inc."
-  },
-  "template_html": "<div style=\\"...\\">...</div>"
-}`
+  "wop_number": "",
+  "product_name": "",
+  "brand_name": "",
+  "sku": "",
+  "province_sku": "",
+  "lot_number": "",
+  "formulation_lot": "",
+  "packaged_on_date": "",
+  "unit_size": "",
+  "units_per_pack": "",
+  "total_units": "",
+  "total_master_cases": "",
+  "province": "",
+  "product_gtin": "",
+  "case_gtin": "",
+  "thc": "",
+  "total_thc": "",
+  "cbd": "",
+  "total_cbd": "",
+  "product_category": "",
+  "net_weight": "",
+  "descriptors_en": "",
+  "descriptors_fr": "",
+  "dried_equivalent": "",
+  "licensed_supplier": "Organigram Inc."
+}
+===HTML===
+<div style="...">...</div>`
 
     // Fallback chain — if a model is overloaded (503) or not found (404), try the next one
     const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-flash-latest', 'gemini-2.0-flash']
@@ -126,8 +127,8 @@ Return ONLY a valid JSON object — no markdown, no backticks, no explanation:
         const model = genAI.getGenerativeModel({
           model: modelName,
           generationConfig: {
-            maxOutputTokens: 4096,
-            responseMimeType: 'application/json',
+            maxOutputTokens: 8192,
+            temperature: 0.2,
           },
         })
         const result = await model.generateContent(parts)
@@ -147,18 +148,37 @@ Return ONLY a valid JSON object — no markdown, no backticks, no explanation:
     if (!text) {
       throw lastErr || new Error('All Gemini models are unavailable. Try again in a moment.')
     }
-    const clean = text.replace(/```json|```/g, '').trim()
+    // Strip any stray markdown fences
+    const stripped = text.replace(/```json|```html|```/g, '').trim()
 
-    let parsed: any
-    try {
-      parsed = JSON.parse(clean)
-    } catch {
-      return NextResponse.json({ error: 'AI returned invalid data. Please try again with clearer screenshots.' }, { status: 422 })
+    // Split on ===HTML=== delimiter — JSON comes before, HTML comes after
+    const htmlDelimIdx = stripped.indexOf('===HTML===')
+    let jsonPart = stripped
+    let rawTemplate = ''
+    if (htmlDelimIdx !== -1) {
+      jsonPart = stripped.slice(0, htmlDelimIdx)
+      rawTemplate = stripped.slice(htmlDelimIdx + '===HTML==='.length).trim()
     }
 
-    // Support both the new { data, template_html } shape and legacy flat shape
-    const data = parsed.data ?? parsed
-    const rawTemplate = typeof parsed.template_html === 'string' ? parsed.template_html : ''
+    // Remove the ===JSON=== delimiter if present, then extract outermost {...}
+    jsonPart = jsonPart.replace(/===JSON===/g, '').trim()
+    const firstBrace = jsonPart.indexOf('{')
+    const lastBrace = jsonPart.lastIndexOf('}')
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
+      jsonPart = jsonPart.slice(firstBrace, lastBrace + 1)
+    }
+
+    let data: any
+    try {
+      data = JSON.parse(jsonPart)
+    } catch (parseErr: any) {
+      console.error('Extract JSON parse failed:', parseErr?.message)
+      console.error('Raw response (first 500):', stripped.slice(0, 500))
+      console.error('Raw response (last 500):', stripped.slice(-500))
+      return NextResponse.json({
+        error: 'AI returned invalid data. Please try again with clearer screenshots.',
+      }, { status: 422 })
+    }
 
     // Basic HTML sanitization — strip scripts / event handlers / javascript: urls
     const templateHtml = rawTemplate
