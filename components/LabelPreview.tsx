@@ -17,12 +17,29 @@ export default function LabelPreview({ data, type, forPrint = false }: LabelPrev
   )
 }
 
+/**
+ * Pads/truncates digits to 14 and ALWAYS recomputes the GS1 mod-10 check digit.
+ * This makes the barcode renderable even when the source GTIN is incomplete or
+ * has an invalid check digit (a common issue with imperfect OCR extraction).
+ */
+function fixGtin14(input: string): string {
+  const digits = input.replace(/\D/g, '').slice(-14)
+  const padded = digits.padStart(14, '0')
+  const base = padded.slice(0, 13)
+  let sum = 0
+  for (let i = 0; i < 13; i++) {
+    sum += parseInt(base[i], 10) * (i % 2 === 0 ? 1 : 3)
+  }
+  const check = (10 - (sum % 10)) % 10
+  return base + check.toString()
+}
+
 function DataMatrix({ gtin, dateYYMMDD, lot, size = 90 }: { gtin: string; dateYYMMDD: string; lot: string; size?: number }) {
   if (!gtin || !lot || !dateYYMMDD || dateYYMMDD === 'YYMMDD') {
     return <div style={{ width: size, height: size }} />
   }
 
-  const gtin14 = gtin.replace(/\D/g, '').padStart(14, '0').slice(-14)
+  const gtin14 = fixGtin14(gtin)
   const text = `(01)${gtin14}(13)${dateYYMMDD}(10)${lot}`
 
   let svg = ''
@@ -136,7 +153,7 @@ function BSLabel({ data }: { data: ExtractedData }) {
             lot={data.lot_number}
           />
           <div style={{ fontSize: '10px', fontWeight: 600, lineHeight: 1.4 }}>
-            <div>(01){data.product_gtin || '—'}</div>
+            <div>(01){data.product_gtin ? fixGtin14(data.product_gtin) : '—'}</div>
             <div>(13){dateForBarcode}</div>
             <div>(10){data.lot_number || '—'}</div>
           </div>
