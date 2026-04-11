@@ -76,6 +76,7 @@ export default function GeneratePage() {
   const [extracting, setExtracting] = useState(false)
   const [extractError, setExtractError] = useState('')
   const [fields, setFields] = useState<ExtractedData>({ ...EMPTY })
+  const [templateHtml, setTemplateHtml] = useState<string>('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const woRef = useRef<HTMLInputElement>(null)
@@ -116,6 +117,7 @@ export default function GeneratePage() {
       const data = await res.json()
       if (!data.ok) throw new Error(data.error)
       setFields({ ...EMPTY, ...data.data })
+      setTemplateHtml(typeof data.template_html === 'string' ? data.template_html : '')
       setStep('verify')
     } catch (err: any) {
       setExtractError(err.message || 'Extraction failed. Try again.')
@@ -187,6 +189,7 @@ export default function GeneratePage() {
     setWoFile(null)
     setSpecFile(null)
     setFields({ ...EMPTY })
+    setTemplateHtml('')
     setExtractError('')
     setSaved(false)
     if (woRef.current) woRef.current.value = ''
@@ -198,7 +201,7 @@ export default function GeneratePage() {
       {/* Print-only area — rendered as a portal directly into <body> so it can be visually isolated during print */}
       {mounted && createPortal(
         <div id="print-label-portal" style={{ display: 'none' }}>
-          <LabelPreview data={fields} type={labelType} forPrint />
+          <LabelPreview data={fields} type={labelType} forPrint templateHtml={templateHtml} />
         </div>,
         document.body
       )}
@@ -447,7 +450,7 @@ export default function GeneratePage() {
                   <p className="text-sm text-gray-400 font-mono">Upload screenshots to see<br />label preview here</p>
                 </div>
               ) : (
-                <LabelPreview data={fields} type={labelType} />
+                <LabelPreview data={fields} type={labelType} templateHtml={templateHtml} />
               )}
             </div>
           </div>

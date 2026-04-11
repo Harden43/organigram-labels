@@ -6,13 +6,89 @@ interface LabelPreviewProps {
   data: ExtractedData
   type: 'bs' | 'mc' | 'both'
   forPrint?: boolean
+  templateHtml?: string
 }
 
-export default function LabelPreview({ data, type, forPrint = false }: LabelPreviewProps) {
+export default function LabelPreview({ data, type, forPrint = false, templateHtml }: LabelPreviewProps) {
   return (
     <div className={forPrint ? 'print-page' : ''}>
-      {(type === 'bs' || type === 'both') && <BSLabel data={data} />}
+      {(type === 'bs' || type === 'both') && (
+        templateHtml
+          ? <DynamicBSLabel data={data} templateHtml={templateHtml} />
+          : <BSLabel data={data} />
+      )}
       {(type === 'mc' || type === 'both') && <MCLabel data={data} />}
+    </div>
+  )
+}
+
+/**
+ * Renders a BS label from an AI-generated HTML template by substituting
+ * variable placeholders and injecting a real DataMatrix SVG.
+ */
+function DynamicBSLabel({ data, templateHtml }: { data: ExtractedData; templateHtml: string }) {
+  const dateForBarcode = (() => {
+    if (!data.packaged_on_date) return 'YYMMDD'
+    const m = data.packaged_on_date.match(/(\d{4})-?(\d{2})-?(\d{2})/)
+    return m ? `${m[1].slice(2)}${m[2]}${m[3]}` : 'YYMMDD'
+  })()
+
+  const gtin14 = data.product_gtin ? fixGtin14(data.product_gtin) : ''
+
+  // Generate DataMatrix SVG or a blank placeholder
+  let dmSvg = ''
+  if (gtin14 && data.lot_number && dateForBarcode !== 'YYMMDD') {
+    try {
+      dmSvg = toSVG({
+        bcid: 'gs1datamatrix',
+        text: `(01)${gtin14}(13)${dateForBarcode}(10)${data.lot_number}`,
+        scale: 4,
+        paddingwidth: 2,
+        paddingheight: 2,
+      })
+    } catch (e) {
+      console.error('DataMatrix render failed in dynamic template:', e)
+    }
+  }
+
+  const escHtml = (s: string) =>
+    (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+  const substitutions: Record<string, string> = {
+    PRODUCT_NAME: escHtml(data.product_name),
+    BRAND_NAME: escHtml(data.brand_name),
+    DESCRIPTORS_EN: escHtml(data.descriptors_en),
+    DESCRIPTORS_FR: escHtml(data.descriptors_fr),
+    TOTAL_THC: escHtml(data.total_thc || data.thc),
+    TOTAL_CBD: escHtml(data.total_cbd || data.cbd),
+    THC: escHtml(data.thc),
+    CBD: escHtml(data.cbd),
+    DRIED_EQUIVALENT: escHtml(data.dried_equivalent || data.net_weight),
+    NET_WEIGHT: escHtml(data.net_weight || data.unit_size),
+    PACKAGED_ON_DATE: escHtml(data.packaged_on_date),
+    LOT_NUMBER: escHtml(data.lot_number),
+    PRODUCT_GTIN: escHtml(gtin14 || data.product_gtin),
+    SKU: escHtml(data.sku),
+    PROVINCE_SKU: escHtml(data.province_sku),
+    PROVINCE: escHtml(data.province),
+    GS1_01: `(01)${escHtml(gtin14 || data.product_gtin || '—')}`,
+    GS1_13: `(13)${dateForBarcode}`,
+    GS1_10: `(10)${escHtml(data.lot_number || '—')}`,
+    DATAMATRIX: dmSvg,
+    LICENSED_SUPPLIER: escHtml(data.licensed_supplier || 'Organigram Inc.'),
+  }
+
+  let rendered = templateHtml
+  for (const [key, value] of Object.entries(substitutions)) {
+    rendered = rendered.replaceAll(`{{${key}}}`, value)
+  }
+
+  return (
+    <div className="mb-5">
+      <p className="text-[10px] font-mono text-gray-400 uppercase tracking-wider mb-2">
+        Brightstock label · {data.wop_number}
+      </p>
+      <div dangerouslySetInnerHTML={{ __html: rendered }} />
     </div>
   )
 }
